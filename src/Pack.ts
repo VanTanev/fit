@@ -27,7 +27,7 @@ export default class Pack {
     pack(data: Array<string | number | bigint>): Buffer {
         const buffers: Buffer[] = []
         let i = -1
-        while (i++ < data.length - 1) {
+        while (++i < data.length) {
             // console.log({
             //     format: this.format,
             //     tokens: this.tokens.slice(this.index + 1),
