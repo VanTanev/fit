@@ -1,6 +1,6 @@
 import Pack from '../Pack'
 
-test.todo('fudge jest')
+test.todo('this is an utils file')
 
 export function arrayPackArguments(_format: string) {
     it('raises an ArgumentError if there are fewer elements than the format requires', () => {
@@ -78,7 +78,9 @@ export function arrayPackString(_format: string) {
         expectPack(format(), [obj], 'a')
     })
 
-    it.todo('returns a string in encoding of common to the concatenated results')
+    it.todo(
+        'returns a string in encoding of common to the concatenated results',
+    )
     // f = pack_format("*")
     // [ [["\u{3042 3044 3046 3048}", 0x2000B].pack(f+"U"),       Encoding::BINARY],
     //   [["abcde\xd1", "\xFF\xFe\x81\x82"].pack(f+"u"),          Encoding::BINARY],
