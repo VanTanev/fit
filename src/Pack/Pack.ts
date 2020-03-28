@@ -180,11 +180,30 @@ export default class Pack {
             }
 
             switch (type) {
+                case 'Z':
                 case 'A':
                 case 'a': {
-                    const len = length === -1 ? input.length : length
-                    const buf = input.subarray(0, len)
-                    input = input.subarray(len)
+                    let zPos = type === 'Z' ? input.indexOf('\x00') : -1
+                    let len =
+                        length === -1
+                            ? zPos !== -1
+                                ? zPos
+                                : input.length
+                            : length
+
+                    // console.log({
+                    //     input,
+                    //     len,
+                    //     zPos,
+                    // })
+                    // extract string (up to null byte for Z*)
+                    const buf = input.subarray(
+                        0,
+                        zPos !== -1 && zPos < len ? zPos : len,
+                    )
+                    // consume from input (up to null byte or length)
+                    input = input.subarray(Math.max(zPos + 1, len))
+
                     const str = buf.toString('binary')
                     if (type === 'A') {
                         // trim null bytes and whitespace from the end
