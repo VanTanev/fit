@@ -114,7 +114,7 @@ export default class Pack {
                     const res = packIntegers({
                         data: data as number[],
                         i,
-                        length,
+                        length: length !== -1 ? length : length / 8,
                         size: 16,
                     })
                     i = res.i
@@ -125,7 +125,7 @@ export default class Pack {
                     const res = packIntegers({
                         data: data as number[],
                         i,
-                        length,
+                        length: length !== -1 ? length : length / 4,
                         size: 32,
                     })
                     i = res.i
@@ -135,7 +135,7 @@ export default class Pack {
                 }
 
                 default: {
-                    throw new Error(`Cannot unpack type "${type}"`)
+                    throw new Error(`Cannot uletnpack type "${type}"`)
                 }
             }
         }
@@ -160,7 +160,7 @@ export default class Pack {
     ): Array<string | number> {
         input = Buffer.isBuffer(input) ? input : Buffer.from(input, encoding)
 
-        const res: Array<string | number> = []
+        let res: Array<string | number> = []
         while (this.peekToken('type')) {
             const { value: type } = this.consumeToken('type')
 
@@ -211,6 +211,33 @@ export default class Pack {
                     } else {
                         res.push(str)
                     }
+                    break
+                }
+                case 'N': {
+                    const unpacked = unpackIntegers({
+                        input,
+                        length: length !== -1 ? length : input.length / 4,
+                        size: 32,
+                    })
+
+                    // console.log(unpacked)
+                    res = res.concat(unpacked.integers)
+                    input = unpacked.truncatedInput
+
+                    break
+                }
+
+                case 'n': {
+                    const unpacked = unpackIntegers({
+                        input,
+                        length: length !== -1 ? length : input.length / 2,
+                        size: 16,
+                    })
+
+                    // console.log(unpacked)
+                    res = res.concat(unpacked.integers)
+                    input = unpacked.truncatedInput
+
                     break
                 }
 
@@ -267,10 +294,6 @@ export default class Pack {
     }
 }
 
-const LIMIT_16_MIN = 0
-const LIMIT_16_MAX = 2 ** 16 - 1
-const LIMIT_32_MIN = 0
-const LIMIT_32_MAX = 2 ** 32 - 1
 function packIntegers({
     data,
     i,
@@ -282,30 +305,60 @@ function packIntegers({
     length: number
     size: 16 | 32
 }): { buffer: Buffer; i: number } {
-    // console.log({ data, i, length, size })
-    const numBuffers: Buffer[] = []
+    const word = size / 8
+    const MAX_NUM = 2 ** size - 1
 
-    let index = i
-    let len = length
-    while (len-- > 0) {
-        const buff = Buffer.alloc(size / 8)
-        let num = data[index++]
-        if (size === 16 && (num >= LIMIT_16_MAX || num <= LIMIT_16_MIN)) {
+    let index = i - 1
+    let len = i + length
+    const buffer = Buffer.allocUnsafe(length * word)
+    // console.log({data, i, index, length, len})
+    while (++index < len) {
+        const num = data[index]
+        if (num > MAX_NUM || num < 0) {
             throw new Error(
-                `RangeError: Cannot pack value "${num}" into 16 bits. Must be between ${LIMIT_16_MIN} and ${LIMIT_16_MAX}`,
+                `RangeError: Cannot pack value "${num}" into 16 bits. Must be between 0 and ${MAX_NUM}`,
             )
         }
-        if (size === 32 && (num >= LIMIT_32_MAX || num <= LIMIT_32_MIN)) {
-            throw new Error(
-                `RangeError: Cannot pack value "${num}" into 32 bits. Must be between ${LIMIT_32_MIN} and ${LIMIT_32_MAX}`,
-            )
-        }
-        if (size === 32) {
-            buff.writeUInt32BE(num >>> 0, 0)
-        } else {
-            buff.writeUInt16BE(num >>> 0, 0)
-        }
-        numBuffers.push(buff)
+        // console.log({ buffer, num: num >>> 0, offset: (index - i) * word, size: word })
+        buffer.writeUIntBE(num >>> 0, (index - i) * word, word)
     }
-    return { buffer: Buffer.concat(numBuffers), i: i + length - 1 }
+    return { buffer, i: i + length - 1 }
+}
+
+function unpackIntegers({
+    input,
+    length,
+    size,
+}: {
+    input: Buffer
+    length: number
+    size: 32 | 16
+}): {
+    truncatedInput: Buffer
+    integers: number[]
+} {
+    const word = size / 8
+    if ((length | 0) !== length || input.length < length * word) {
+        throw new Error(
+            `Cannot parse integer of size ${size} from data "${input.toString(
+                'binary',
+            )}" `,
+        )
+    }
+    const integers: number[] = []
+    let i = -1
+    while (++i < length) {
+        // console.log({
+        //     input,
+        //     i,
+        //     num: input.readUIntBE(i, word),
+        //     raw: input.subarray(i * word, i * word + word),
+        // })
+        integers.push(input.readUIntBE(i * word, word))
+    }
+
+    return {
+        integers,
+        truncatedInput: input.subarray(length * word),
+    }
 }

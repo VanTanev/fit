@@ -1,8 +1,6 @@
-import { unpackBasic, expectUnpack } from './unpack_util'
+import { expectUnpack } from './unpack_util'
 
 describe("Pack#unpack with format 'H'", () => {
-    unpackBasic('H')
-
     it('decodes one nibble from each byte for each format character starting with the most significant bit', () => {
         const data: [string, string, string[]][] = [
             ['\x8f', 'H', ['8']],

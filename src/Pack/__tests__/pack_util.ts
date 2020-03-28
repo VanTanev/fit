@@ -125,7 +125,7 @@ export function arrayPack32BitBe(_format: string) {
 
     it('ignores NULL bytes between directives', () => {
         expectPack(
-            format('\0', 2),
+            format('\x00', 2),
             [0x1243_6578, 0xdef0_abcd],
             Buffer.from('\x12\x43\x65\x78\xde\xf0\xab\xcd', 'binary'),
         )
