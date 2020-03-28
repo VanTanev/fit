@@ -86,12 +86,12 @@ describe(Pack, () => {
             expect(subject.pack([1])).toEqual(res)
         })
 
-        it('works with bigint', () => {
-            const res = Buffer.alloc(4)
-            res.writeUInt32BE(1, 0)
+        // it('works with bigint', () => {
+        //     const res = Buffer.alloc(4)
+        //     res.writeUInt32BE(1, 0)
 
-            expect(subject.pack([BigInt(1)])).toEqual(res)
-        })
+        //     expect(subject.pack([BigInt(1)])).toEqual(res)
+        // })
 
         it('works on multi N', () => {
             const subject = new Pack('N2')
@@ -123,12 +123,12 @@ describe(Pack, () => {
             expect(subject.pack([1])).toEqual(res)
         })
 
-        it('works with bigint', () => {
-            const res = Buffer.alloc(2)
-            res.writeUInt16BE(1, 0)
+        // it('works with bigint', () => {
+        //     const res = Buffer.alloc(2)
+        //     res.writeUInt16BE(1, 0)
 
-            expect(subject.pack([BigInt(1)])).toEqual(res)
-        })
+        //     expect(subject.pack([BigInt(1)])).toEqual(res)
+        // })
 
         it('works on multi n', () => {
             const subject = new Pack('n2')

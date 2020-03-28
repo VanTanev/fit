@@ -17,32 +17,14 @@ export function arrayPackBasicNonFloat(format: string) {
 }
 
 export function arrayPackHex(_format: string) {
-    function format(count?: number): string {
-        return _format + String(count ?? '')
-    }
+    const format = makeFormat(_format)
+
     it('encodes no bytes when passed zero as the count modifier', () => {
         expectPack(format(0), ['1'], '')
     })
-
-    // it('raises a TypeError if the object does not respond to #to_str', () => {
-    //     expect(() => {
-    //         expectPack(format(0), [{}], '')
-    //     })
-    // })
-
-    // it('raises a TypeError if #to_str does not return a String', () => {
-    //     // obj = mock("pack hex non-string")
-    //     // obj.should_receive(:to_str).and_return(1)
-    //     // -> { [obj].pack(pack_format) }.should raise_error(TypeError)
-    // })
 }
 export function arrayPackString(_format: string) {
-    function format(count?: number, repeat?: number): string {
-        let res = _format
-        res += String(count ?? '')
-        res = res.repeat(repeat ?? 1)
-        return res
-    }
+    const format = makeFormat(_format)
     it('adds count bytes of a String to the output', () => {
         expectPack(format(2), ['abc'], 'ab')
     })
@@ -77,20 +59,154 @@ export function arrayPackString(_format: string) {
         }
         expectPack(format(), [obj], 'a')
     })
-
-    it.todo(
-        'returns a string in encoding of common to the concatenated results',
-    )
-    // f = pack_format("*")
-    // [ [["\u{3042 3044 3046 3048}", 0x2000B].pack(f+"U"),       Encoding::BINARY],
-    //   [["abcde\xd1", "\xFF\xFe\x81\x82"].pack(f+"u"),          Encoding::BINARY],
-    //   [["a".force_encoding("ascii"), "\xFF\xFe\x81\x82"].pack(f+"u"), Encoding::BINARY],
-    //   # under discussion [ruby-dev:37294]
-    //   [["\u{3042 3044 3046 3048}", 1].pack(f+"N"),             Encoding::BINARY]
-    // ].should be_computed_by(:encoding)
 }
 
-export function makePack(format: string) {
+export function arrayPackNumericBasic(_format: string) {
+    const format = makeFormat(_format)
+
+    it('returns an empty String if count is zero', () => {
+        expectPack(format(0), [1], '')
+    })
+}
+
+export function arrayPack32BitBe(_format: string) {
+    const format = makeFormat(_format)
+
+    function test(data: [[number], string][]) {
+        data.forEach(([data, expected]) => {
+            expectPack(format(), data, Buffer.from(expected, 'binary'))
+        })
+    }
+
+    it('encodes the least significant 32 bits of a positive number', () => {
+        test([
+            [[0x0000_0021], '\x00\x00\x00\x21'],
+            [[0x0000_4321], '\x00\x00\x43\x21'],
+            [[0x0065_4321], '\x00\x65\x43\x21'],
+            [[0x7865_4321], '\x78\x65\x43\x21'],
+        ])
+    })
+
+    it('throws when given out of range number', () => {
+        expect(() => {
+            makePack(format())([0x0001_0000_0000])
+        }).toThrow('Cannot pack value')
+
+        expect(() => {
+            makePack(format())([-1])
+        }).toThrow('Cannot pack value')
+    })
+
+    it('encodes a Float truncated as an Integer', () => {
+        test([
+            [[2019902241.2], '\x78\x65\x43\x21'],
+            [[2019902241.8], '\x78\x65\x43\x21'],
+        ])
+    })
+
+    it('encodes the number of array elements specified by the count modifier', () => {
+        expectPack(
+            format(2),
+            [0x1243_6578, 0xdef0_abcd, 0x7865_4321],
+            Buffer.from('\x12\x43\x65\x78\xde\xf0\xab\xcd', 'binary'),
+        )
+    })
+
+    it("encodes all remaining elements when passed the '*' modifier", () => {
+        expectPack(
+            format('*'),
+            [0x1243_6578, 0xdef0_abcd, 0x7865_4321],
+            Buffer.from(
+                '\x12\x43\x65\x78\xde\xf0\xab\xcd\x78\x65\x43\x21',
+                'binary',
+            ),
+        )
+    })
+
+    it('ignores NULL bytes between directives', () => {
+        expectPack(
+            format('\0', 2),
+            [0x1243_6578, 0xdef0_abcd],
+            Buffer.from('\x12\x43\x65\x78\xde\xf0\xab\xcd', 'binary'),
+        )
+    })
+
+    it("ignores spaces between directives", () => {
+        expectPack(
+            format(' ' , 2),
+            [0x1243_6578, 0xdef0_abcd],
+            Buffer.from('\x12\x43\x65\x78\xde\xf0\xab\xcd', 'binary'),
+        )
+    })
+}
+export function arrayPack16BitBe(_format: string) {
+    const format = makeFormat(_format)
+
+    function test(data: [[number], string][]) {
+        data.forEach(([data, expected]) => {
+            expectPack(format(), data, Buffer.from(expected, 'binary'))
+        })
+    }
+
+    it('encodes the least significant 16 bits of a positive number', () => {
+        test([
+            [[0x0000_0021], '\x00\x21'],
+            [[0x0000_4321], '\x43\x21'],
+        ])
+    })
+
+    it('throws when given out of range number', () => {
+        expect(() => {
+            makePack(format())([0x0001_0000])
+        }).toThrow('Cannot pack value')
+
+        expect(() => {
+            makePack(format())([-1])
+        }).toThrow('Cannot pack value')
+    })
+
+    it('encodes a Float truncated as an Integer', () => {
+        test([
+            [[0.2], '\x00\x00'],
+            [[0.8], '\x00\x00'],
+            [[1.8], '\x00\x01'],
+        ])
+    })
+
+    it('encodes the number of array elements specified by the count modifier', () => {
+        expectPack(
+            format(2),
+            [0x6578, 0xabcd, 0x4321],
+            Buffer.from('\x65\x78\xab\xcd', 'binary'),
+        )
+    })
+
+    it("encodes all remaining elements when passed the '*' modifier", () => {
+        expectPack(
+            format('*'),
+            [0x6578, 0xabcd, 0x4321],
+            Buffer.from('\x65\x78\xab\xcd\x43\x21', 'binary'),
+        )
+    })
+
+    it("ignores NULL bytes between directives", () => {
+        expectPack(
+            format('\0', 2),
+            [0x6578, 0xabcd, 0x4321],
+            Buffer.from('\x65\x78\xab\xcd', 'binary'),
+        )
+    })
+
+    it("ignores spaces between directives", () => {
+        expectPack(
+            format(' ', 2),
+            [0x6578, 0xabcd, 0x4321],
+            Buffer.from('\x65\x78\xab\xcd', 'binary'),
+        )
+    })
+}
+
+export function makePack(format: string): Pack['pack'] {
     const pack = new Pack(format)
     return pack.pack.bind(pack)
 }
@@ -103,4 +219,14 @@ export function expectPack(
     expect(makePack(format)(data)).toEqual(
         Buffer.isBuffer(expected) ? expected : Buffer.from(expected),
     )
+}
+
+export const makeFormat = (format: string) => (
+    count?: number | string,
+    repeat?: number,
+): string => {
+    let res = format
+    res += String(count ?? '')
+    res = res.repeat(repeat ?? 1)
+    return res
 }

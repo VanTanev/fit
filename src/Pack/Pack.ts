@@ -3,6 +3,8 @@ import { TokenType, FormatTokenizer, Token } from './Tokenizer'
 // TODO: Figure out how is this defined?
 // console.log({length})
 
+const STRING_TYPES = ['a', 'A', 'h', 'H', 'Z']
+
 export default class Pack {
     private tokens: Token[]
     private index = -1
@@ -11,7 +13,7 @@ export default class Pack {
         this.tokens = new FormatTokenizer(format).tokenize()
     }
 
-    pack(data: Array<string | number | bigint>): Buffer {
+    pack(data: Array<string | number>): Buffer {
         const buffers: Buffer[] = []
         let i = -1
         while (++i < data.length) {
@@ -23,6 +25,9 @@ export default class Pack {
             //     i,
             //     buffers,
             // })
+            if (this.allTokensConsumed()) {
+                break
+            }
             const { value: type } = this.consumeToken('type')
             let length = 1
             let sData = String(data[i] ?? '')
@@ -37,7 +42,13 @@ export default class Pack {
 
             if (this.peekToken('modifier_splat')) {
                 this.consumeToken('modifier_splat')
-                length = sData.length
+
+                if (STRING_TYPES.includes(type)) {
+                    length = sData.length
+                } else {
+                    length = data.length - i
+                }
+
                 if (type === 'Z') {
                     length++
                 }
@@ -130,6 +141,7 @@ export default class Pack {
         }
 
         this.ensureAllTokensConsumed()
+        // console.log('result', Buffer.concat(buffers))
         return Buffer.concat(buffers)
     }
 
@@ -168,6 +180,21 @@ export default class Pack {
             }
 
             switch (type) {
+                case 'A':
+                case 'a': {
+                    const len = length === -1 ? input.length : length
+                    const buf = input.subarray(0, len)
+                    input = input.subarray(len)
+                    const str = buf.toString('binary')
+                    if (type === 'A') {
+                        // trim null bytes and whitespace from the end
+                        res.push(str.replace(/(\x00|\x20)+$/, ''))
+                    } else {
+                        res.push(str)
+                    }
+                    break
+                }
+
                 case 'H': {
                     const len =
                         length === -1 ? input.length : Math.ceil(length / 2)
@@ -179,6 +206,7 @@ export default class Pack {
                             .toString('hex')
                             .substring(0, length === -1 ? undefined : length),
                     )
+                    break
                 }
             }
         }
@@ -214,8 +242,16 @@ export default class Pack {
             )
         }
     }
+
+    private allTokensConsumed(): boolean {
+        return this.index === this.tokens.length - 1
+    }
 }
 
+const LIMIT_16_MIN = 0
+const LIMIT_16_MAX = 2 ** 16 - 1
+const LIMIT_32_MIN = 0
+const LIMIT_32_MAX = 2 ** 32 - 1
 function packIntegers({
     data,
     i,
@@ -227,24 +263,30 @@ function packIntegers({
     length: number
     size: 16 | 32
 }): { buffer: Buffer; i: number } {
+    // console.log({ data, i, length, size })
     const numBuffers: Buffer[] = []
-    while (length-- > 0) {
+
+    let index = i
+    let len = length
+    while (len-- > 0) {
         const buff = Buffer.alloc(size / 8)
-        let num = data[i++]
+        let num = data[index++]
+        if (size === 16 && (num >= LIMIT_16_MAX || num <= LIMIT_16_MIN)) {
+            throw new Error(
+                `RangeError: Cannot pack value "${num}" into 16 bits. Must be between ${LIMIT_16_MIN} and ${LIMIT_16_MAX}`,
+            )
+        }
+        if (size === 32 && (num >= LIMIT_32_MAX || num <= LIMIT_32_MIN)) {
+            throw new Error(
+                `RangeError: Cannot pack value "${num}" into 32 bits. Must be between ${LIMIT_32_MIN} and ${LIMIT_32_MAX}`,
+            )
+        }
         if (size === 32) {
-            num =
-                typeof num === 'bigint'
-                    ? Number(BigInt.asUintN(size, num))
-                    : num
-            buff.writeUInt32BE(num, 0)
+            buff.writeUInt32BE(num >>> 0, 0)
         } else {
-            num =
-                typeof num === 'bigint'
-                    ? Number(BigInt.asUintN(size, num))
-                    : num
-            buff.writeUInt16BE(num, 0)
+            buff.writeUInt16BE(num >>> 0, 0)
         }
         numBuffers.push(buff)
     }
-    return { buffer: Buffer.concat(numBuffers), i: i - 1 }
+    return { buffer: Buffer.concat(numBuffers), i: i + length - 1 }
 }

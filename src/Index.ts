@@ -4,7 +4,7 @@ import Blob from './database/Blob'
 import { FileStats } from './Workspace'
 import Lockfile from './Lockfile'
 import Entry from './Entry'
-import Pack from './Pack'
+import Pack from './Pack/Pack'
 
 export default class Index {
     static HEADER_FORMAT = new Pack('a4N2')
@@ -121,6 +121,8 @@ class IndexEntry {
         )
         return new IndexEntry(
             Math.floor(stat.ctime.getTime() / 1000),
+            // TODO
+            // BigInt.asUintN(32, BigInt(stat.ctimeNs) % BigInt(1_000_000_000)),
             BigInt(stat.ctimeNs) % BigInt(1_000_000_000),
             Math.floor(stat.mtime.getTime() / 1000),
             BigInt(stat.mtimeNs) % BigInt(1_000_000_000),

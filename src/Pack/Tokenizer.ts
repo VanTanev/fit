@@ -34,7 +34,10 @@ export class FormatTokenizer {
 }
 
 export class Token {
-    constructor(public type: TokenType, public value: string) {}
+    constructor(
+        public readonly type: TokenType,
+        public readonly value: string,
+    ) {}
 
     toString() {
         return JSON.stringify(this)

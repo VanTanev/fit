@@ -1,5 +1,3 @@
-import Pack from '../Pack'
-
 import { unpackBasic, expectUnpack } from './unpack_util'
 
 describe("Pack#unpack with format 'H'", () => {

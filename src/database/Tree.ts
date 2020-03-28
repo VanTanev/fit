@@ -1,6 +1,6 @@
 import Entry from '../Entry'
 import path from 'path'
-import Pack from '../Pack'
+import Pack from '../Pack/Pack'
 
 export default class Tree implements Storable {
     static ENTRY_FORMAT = new Pack('Z*H20')
