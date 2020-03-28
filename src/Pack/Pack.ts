@@ -14,6 +14,15 @@ export default class Pack {
     }
 
     pack(data: Array<string | number>): Buffer {
+        try {
+            return this._pack(data)
+        } catch (e) {
+            this.index = -1
+            throw e
+        }
+    }
+
+    private _pack(data: Array<string | number>): Buffer {
         const buffers: Buffer[] = []
         let i = -1
         while (++i < data.length) {
@@ -135,7 +144,7 @@ export default class Pack {
                 }
 
                 default: {
-                    throw new Error(`Cannot uletnpack type "${type}"`)
+                    throw new Error(`Cannot pack type "${type}"`)
                 }
             }
         }
@@ -155,6 +164,18 @@ export default class Pack {
      */
     unpack(input: string, encoding?: BufferEncoding): Array<string | number>
     unpack(
+        input: Buffer | string,
+        encoding: BufferEncoding = 'binary',
+    ): Array<string | number> {
+        try {
+            return this._unpack(input, encoding)
+        } catch (e) {
+            this.index = -1
+            throw e
+        }
+    }
+
+    private _unpack(
         input: Buffer | string,
         encoding: BufferEncoding = 'binary',
     ): Array<string | number> {
@@ -253,6 +274,10 @@ export default class Pack {
                             .substring(0, length === -1 ? undefined : length),
                     )
                     break
+                }
+
+                default: {
+                    throw new Error(`Cannot unpack type "${type}"`)
                 }
             }
         }
