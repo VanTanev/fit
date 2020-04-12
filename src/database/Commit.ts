@@ -1,6 +1,6 @@
-import Author from './Author'
+import { Author} from './Author'
 
-export default class Commit implements Storable {
+export class Commit implements Storable {
     public oid?: string
     constructor(
         public parent: string | undefined,

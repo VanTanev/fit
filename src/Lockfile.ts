@@ -1,6 +1,6 @@
 import fs from 'fs'
 
-export default class Lockfile {
+export class Lockfile {
     private lockPath: string
     private lock: number | undefined
 

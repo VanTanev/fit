@@ -1,8 +1,8 @@
-import Entry from '../Entry'
 import path from 'path'
+import { Entry } from '../Entry'
 import { Packer } from 'binary-packer'
 
-export default class Tree implements Storable {
+export class Tree implements Storable {
     static ENTRY_FORMAT = 'Z*H40'
 
     static build(entries: Entry[]): Tree {

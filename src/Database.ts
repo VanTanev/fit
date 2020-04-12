@@ -4,7 +4,7 @@ import fs from 'fs'
 
 import { sha1, deflate, fileExists } from './utils'
 
-export default class Database {
+export class Database {
     constructor(private path: string) {}
 
     store(object: Storable) {

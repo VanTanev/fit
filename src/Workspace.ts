@@ -1,13 +1,13 @@
 import fs from 'fs'
 import path from 'path'
 
-import Entry, { Mode } from './Entry'
+import { Entry, Mode } from './Entry'
 
 const IGNORE = ['.', '..', '.git', 'node_modules', 'test-git']
 
 export type FileStats = fs.BigIntStats & { user_mode: Mode }
 
-export default class Workspace {
+export class Workspace {
     constructor(private path: string) {}
 
     listFiles(fileOrDir = this.path): string[] {

@@ -1,4 +1,4 @@
-export default class Author {
+export class Author {
     constructor(
         private name: string = '',
         private email: string = '',

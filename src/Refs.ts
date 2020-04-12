@@ -1,10 +1,10 @@
 import fs from 'fs'
 import path from 'path'
 
-import Lockfile from './Lockfile'
+import { Lockfile } from './Lockfile'
 import { fileExists } from './utils'
 
-export default class Refs {
+export class Refs {
     private headPath: string
 
     constructor(gitPath: string) {
