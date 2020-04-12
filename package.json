@@ -12,6 +12,6 @@
     "typescript": "^3.8.2"
   },
   "dependencies": {
-    "binary-packer": "^0.0.1"
+    "binary-packer": "^0.0.2"
   }
 }
