@@ -4,6 +4,16 @@ import path from 'path'
 import crypto from 'crypto'
 import zlib from 'zlib'
 
+export class SortedSet<T> extends Set<T> {
+    forEach(
+        callbackfn: (value: T, value2: T, set: Set<T>) => void,
+        thisArg?: any,
+    ): void {
+        ;[...this].sort().forEach(v => callbackfn.call(thisArg, v, v, this))
+    }
+
+    // TODO use values() method to generate a sorted iterator?
+}
 const homeDirectory = os.homedir()
 
 export function resolvePath(targetPath: string): string {
@@ -40,5 +50,14 @@ export function fileExists(filePath: string) {
         return true
     } catch (e) {
         return false
+    }
+}
+
+export function invariant(
+    condition: any,
+    message: string = 'Invariant violation',
+): asserts condition {
+    if (!condition) {
+        throw new Error(message)
     }
 }

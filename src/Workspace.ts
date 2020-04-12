@@ -19,13 +19,13 @@ export default class Workspace {
                 .readdirSync(fileOrDir)
                 .filter(dir => !IGNORE.includes(dir))
                 // reduce() used to hack a flatMap()
-                .reduce((filePaths, filePath) => {
+                .reduce<string[]>((filePaths, filePath) => {
                     filePath = path.join(fileOrDir, filePath)
                     const stat = fs.statSync(filePath)
                     return stat.isDirectory()
                         ? [...filePaths, ...this.listFiles(filePath)]
                         : [...filePaths, path.relative(this.path, filePath)]
-                }, [] as string[])
+                }, [])
 
             return filePaths
         }

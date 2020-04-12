@@ -5,21 +5,39 @@ import { FileStats } from './Workspace'
 import Lockfile from './Lockfile'
 import Entry from './Entry'
 import { Packer } from 'binary-packer'
+import { SortedSet, invariant } from './utils'
 
 export default class Index {
     static HEADER_FORMAT = 'a4N2'
 
-    private entries: IndexEntry[] = []
+    private entries: Record<string, IndexEntry>
+    private keys: SortedSet<string>
     private lockfile: Lockfile
     private sha1digest?: crypto.Hash
 
     constructor(private filePath: string) {
+        this.entries = {}
+        this.keys = new SortedSet()
         this.lockfile = new Lockfile(this.filePath)
     }
 
     addEntry(filePath: string, blob: Blob, stat: FileStats): void {
         const entry = IndexEntry.create(filePath, blob.oid!, stat)
-        this.entries.push(entry)
+        this.keys.add(entry.key)
+        this.entries[entry.key] = entry
+    }
+
+    eachEntry(callbackfn: (value: IndexEntry) => void, thisArg?: any): void {
+        this.keys.forEach(key => callbackfn.call(thisArg, this.entries[key]))
+    }
+
+    loadForUpdate(): boolean {
+        if (this.lockfile.holdForUpdate()) {
+            this.load()
+            return true
+        }
+
+        return false
     }
 
     writeUpdates(): boolean {
@@ -31,16 +49,18 @@ export default class Index {
         const header = new Packer(Index.HEADER_FORMAT).pack([
             'DIRC',
             2,
-            this.entries.length,
+            this.keys.size,
         ])
         this.write(header)
 
-        this.entries.forEach(entry => this.write(entry.buffer))
+        this.eachEntry(entry => this.write(entry.buffer))
 
         this.finishWrite()
 
         return true
     }
+
+    private load(): void {}
 
     private beginWrite(): void {
         this.sha1digest = crypto.createHash('sha1')
@@ -113,6 +133,10 @@ class IndexEntry {
         return buff
     }
 
+    get key() {
+        return this.path
+    }
+
     static create(filePath: string, oid: string, stat: FileStats): IndexEntry {
         const mode =
             stat.user_mode === Entry.EXEC_MODE
@@ -143,11 +167,3 @@ class IndexEntry {
     }
 }
 
-function invariant(
-    condition: any,
-    message: string = 'Invariant violation',
-): asserts condition {
-    if (!condition) {
-        throw new Error(message)
-    }
-}
