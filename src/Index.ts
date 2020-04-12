@@ -103,10 +103,12 @@ class IndexEntry {
             this.path,
         ])
 
-        buff = Buffer.concat([
-            buff,
-            Buffer.alloc(8 - (buff.byteLength % IndexEntry.ENTRY_BLOCK)),
-        ])
+        if (buff.byteLength % IndexEntry.ENTRY_BLOCK !== 0) {
+            buff = Buffer.concat([
+                buff,
+                Buffer.alloc(8 - (buff.byteLength % IndexEntry.ENTRY_BLOCK)),
+            ])
+        }
 
         return buff
     }
