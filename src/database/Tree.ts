@@ -3,7 +3,7 @@ import path from 'path'
 import { Packer } from 'binary-packer'
 
 export default class Tree implements Storable {
-    static ENTRY_FORMAT = 'Z*H20'
+    static ENTRY_FORMAT = 'Z*H40'
 
     static build(entries: Entry[]): Tree {
         entries = Tree.sortEntries(entries)

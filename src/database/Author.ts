@@ -1,7 +1,7 @@
 export default class Author {
     constructor(
-        private name: string,
-        private email: string,
+        private name: string = '',
+        private email: string = '',
         private time: Date,
     ) {}
 
