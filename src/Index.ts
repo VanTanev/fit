@@ -4,10 +4,10 @@ import Blob from './database/Blob'
 import { FileStats } from './Workspace'
 import Lockfile from './Lockfile'
 import Entry from './Entry'
-import Pack from './Pack/Pack'
+import { Packer } from 'binary-packer'
 
 export default class Index {
-    static HEADER_FORMAT = new Pack('a4N2')
+    static HEADER_FORMAT = 'a4N2'
 
     private entries: IndexEntry[] = []
     private lockfile: Lockfile
@@ -28,7 +28,7 @@ export default class Index {
         }
         this.beginWrite()
 
-        const header = Index.HEADER_FORMAT.pack([
+        const header = new Packer(Index.HEADER_FORMAT).pack([
             'DIRC',
             2,
             this.entries.length,
@@ -60,7 +60,7 @@ export default class Index {
 }
 
 class IndexEntry {
-    static ENTRY_FORMAT = new Pack('N10H40nZ*')
+    static ENTRY_FORMAT = 'N10H40nZ*'
 
     static REGULAR_MODE = 0o0100644 as const
     static EXECUTABLE_MODE = 0o0100755 as const
@@ -87,25 +87,26 @@ class IndexEntry {
     ) {}
 
     get buffer(): Buffer {
-        let buff = IndexEntry.ENTRY_FORMAT.pack([
+        let buff = new Packer(IndexEntry.ENTRY_FORMAT).pack([
             this.ctime,
-            this.ctimeNsec,
+            Number(this.ctimeNsec),
             this.mtime,
-            this.mtimeNsec,
-            this.dev,
-            this.ino,
+            Number(this.mtimeNsec),
+            Number(this.dev),
+            Number(this.ino),
             this.mode,
-            this.uid,
-            this.gid,
-            this.size,
+            Number(this.uid),
+            Number(this.gid),
+            Number(this.size),
             this.oid,
             this.flags,
             this.path,
         ])
 
-        while (buff.byteLength % IndexEntry.ENTRY_BLOCK !== 0) {
-            buff = Buffer.concat([buff, Buffer.from('\0')])
-        }
+        buff = Buffer.concat([
+            buff,
+            Buffer.alloc(8 - (buff.byteLength % IndexEntry.ENTRY_BLOCK)),
+        ])
 
         return buff
     }

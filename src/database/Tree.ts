@@ -1,9 +1,9 @@
 import Entry from '../Entry'
 import path from 'path'
-import Pack from '../Pack/Pack'
+import { Packer } from 'binary-packer'
 
 export default class Tree implements Storable {
-    static ENTRY_FORMAT = new Pack('Z*H20')
+    static ENTRY_FORMAT = 'Z*H20'
 
     static build(entries: Entry[]): Tree {
         entries = Tree.sortEntries(entries)
@@ -62,7 +62,7 @@ export default class Tree implements Storable {
         for (const name in this.entries) {
             const entry = this.entries[name]
             buffers.push(
-                Tree.ENTRY_FORMAT.pack([`${entry.mode} ${name}`, entry.oid!]),
+                new Packer(Tree.ENTRY_FORMAT).pack([`${entry.mode} ${name}`, entry.oid!]),
             )
         }
 
