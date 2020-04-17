@@ -1,6 +1,5 @@
 import fs from 'fs'
 
-import { Blob } from './database/Blob'
 import { FileStats } from './Workspace'
 import { Lockfile } from './Lockfile'
 import { Packer } from 'binary-packer'
@@ -15,18 +14,21 @@ export class Index {
     static HEADER_FORMAT = 'a4N2'
 
     private entries: Record<string, Entry>
+    private parents: Record<string, Set<string>>
     private keys: SortedSet<string>
     private lockfile: Lockfile
     private changed = false
 
     constructor(private filePath: string) {
         this.entries = {}
+        this.parents = {}
         this.keys = new SortedSet()
         this.lockfile = new Lockfile(this.filePath)
     }
 
-    addEntry(filePath: string, blob: Blob, stat: FileStats): void {
-        const entry = Entry.create(filePath, blob.oid!, stat)
+    addEntry(filePath: string, oid: string, stat: FileStats): void {
+        const entry = Entry.create(filePath, oid, stat)
+        this.discardConflicts(entry)
         this.storeEntry(entry)
         this.changed = true
     }
@@ -89,6 +91,39 @@ export class Index {
         }
     }
 
+    private discardConflicts(entry: Entry): void {
+        for (const dir of entry.parentDirectories) {
+            this.removeEntry(dir)
+        }
+        this.removeChildren(entry.path)
+    }
+
+    private removeEntry(path: string): void {
+        const entry = this.entries[path]
+        if (!entry) {
+            return
+        }
+        this.keys.delete(path)
+        delete this.entries[path]
+        for (const dir of entry.parentDirectories) {
+            if (!this.parents[dir]) continue
+
+            this.parents[dir].delete(entry.path)
+            if (Object.keys(this.parents[dir]).length === 0) {
+                delete this.parents[dir]
+            }
+        }
+    }
+
+    private removeChildren(parentDir: string) {
+        if (!this.parents[parentDir]) {
+            return
+        }
+
+        const children = this.parents[parentDir]
+        children.forEach(entry => this.removeEntry(entry))
+    }
+
     private readHeader(reader: Checksum): number {
         const [, , count] = new Packer(Index.HEADER_FORMAT).unpack<
             [string, number, number]
@@ -110,6 +145,11 @@ export class Index {
     private storeEntry(entry: Entry): void {
         this.keys.add(entry.key)
         this.entries[entry.key] = entry
+
+        for (const dir of entry.parentDirectories) {
+            const parents = (this.parents[dir] = this.parents[dir] || new Set())
+            parents.add(entry.path)
+        }
     }
 
     private openIndexFile(): number | undefined {
@@ -126,6 +166,7 @@ export class Index {
 
     private clear() {
         this.entries = {}
+        this.parents = {}
         this.keys = new SortedSet()
         this.changed = false
     }

@@ -22,8 +22,8 @@ export class Tree implements Storable {
         if (parents.length === 0) {
             this.entries[entry.basename] = entry
         } else {
-            const tree =
-                (this.entries[parents[0]] as Tree | undefined) || new Tree()
+            const tree = (this.entries[parents[0]] =
+                (this.entries[parents[0]] as Tree | undefined) || new Tree())
 
             tree.addEntry(parents.slice(1), entry)
         }

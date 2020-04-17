@@ -29,9 +29,17 @@ export class Entry {
         public path: string,
     ) {}
 
+    /**
+     * Given a path like "a/b/c/d.txt" this returns:
+     * ["a", "a/b", "a/b/c"]
+     */
     get parentDirectories(): string[] {
         const parsed = path.parse(this.path)
-        return parsed.dir.length === 0 ? [] : parsed.dir.split(path.sep)
+        return parsed.dir.length === 0
+            ? []
+            : parsed.dir.split(path.sep).map((_, index, dirs) => {
+                  return dirs.slice(0, index + 1).join(path.sep)
+              })
     }
 
     get basename(): string {

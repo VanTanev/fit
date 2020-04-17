@@ -35,7 +35,7 @@ export class Workspace {
         return fs.readFileSync(path.join(this.path, fileName))
     }
 
-    statFile(fileName: string): FileStats {
+    static statFile(fileName: string): FileStats {
         const stat = fs.statSync(fileName, { bigint: true })
 
         let user_mode: Mode

@@ -88,10 +88,10 @@ function main(ARGV: string[]) {
 
                 for (const filePath of filePaths) {
                     const data = workspace.readFile(filePath)
-                    const stat = workspace.statFile(filePath)
+                    const stat = Workspace.statFile(filePath)
                     const blob = new Blob(data)
                     database.store(blob)
-                    index.addEntry(filePath, blob, stat)
+                    index.addEntry(filePath, blob.oid!, stat)
                 }
             }
 
