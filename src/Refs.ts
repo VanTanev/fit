@@ -24,6 +24,7 @@ export class Refs {
         if (!fileExists(this.headPath)) {
             return undefined
         }
+
         return fs
             .readFileSync(this.headPath)
             .toString()

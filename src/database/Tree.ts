@@ -1,49 +1,40 @@
-import path from 'path'
-import { Entry } from '../Entry'
+import { Entry } from '../index/Entry'
 import { Packer } from 'binary-packer'
+import { Storable } from '../Storable'
 
 export class Tree implements Storable {
+    static TREE_MODE = 0o040000
     static ENTRY_FORMAT = 'Z*H40'
 
     static build(entries: Entry[]): Tree {
-        entries = Tree.sortEntries(entries)
         const root = new Tree()
         entries.forEach(entry => {
-            const parsed = path.parse(entry.path)
-            const dirs =
-                parsed.dir.length === 0 ? [] : parsed.dir.split(path.sep)
-            root.addEntry(dirs, parsed.base, entry)
+            root.addEntry(entry.parentDirectories, entry)
         })
         return root
-    }
-
-    static sortEntries(entries: Entry[]): Entry[] {
-        const compare = new Intl.Collator(undefined, {}).compare
-        return entries.slice().sort((e1, e2) => compare(e1.path, e2.path))
     }
 
     public oid?: string
     public entries: Record<string, Entry | Tree> = {}
     constructor() {}
 
-    addEntry(dirs: string[], basename: string, entry: Entry) {
-        if (dirs.length === 0) {
-            this.entries[basename] = entry
+    addEntry(parents: string[], entry: Entry) {
+        if (parents.length === 0) {
+            this.entries[entry.basename] = entry
         } else {
-            const dirname = dirs[0]
-            this.entries[dirname] = this.entries[dirname] || new Tree()
+            const tree =
+                (this.entries[parents[0]] as Tree | undefined) || new Tree()
 
-            const tree = this.entries[dirname] as Tree
-            tree.addEntry(dirs.slice(1), basename, entry)
+            tree.addEntry(parents.slice(1), entry)
         }
     }
 
-    get type() {
-        return 'tree' as const
+    get type(): 'tree' {
+        return 'tree'
     }
 
     get mode() {
-        return Entry.DIR_MODE
+        return Tree.TREE_MODE
     }
 
     traverse(cb: (tree: Tree) => void): void {
@@ -61,9 +52,12 @@ export class Tree implements Storable {
         const buffers: Buffer[] = []
         for (const name in this.entries) {
             const entry = this.entries[name]
-            buffers.push(
-                new Packer(Tree.ENTRY_FORMAT).pack([`${entry.mode} ${name}`, entry.oid!]),
-            )
+            const mode = entry.mode.toString(8)
+            const buffer = new Packer(Tree.ENTRY_FORMAT).pack([
+                `${mode} ${name}`,
+                entry.oid!,
+            ])
+            buffers.push(buffer)
         }
 
         return Buffer.concat(buffers)

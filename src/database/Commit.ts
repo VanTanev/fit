@@ -1,4 +1,5 @@
 import { Author} from './Author'
+import { Storable } from '../Storable'
 
 export class Commit implements Storable {
     public oid?: string

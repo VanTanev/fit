@@ -5,14 +5,58 @@ import crypto from 'crypto'
 import zlib from 'zlib'
 
 export class SortedSet<T> extends Set<T> {
+    sorted(): T[] {
+        return Array.from(super[Symbol.iterator]()).sort()
+    }
+
+    [Symbol.iterator](): IterableIterator<T> {
+        return this.sorted()[Symbol.iterator]()
+    }
+
+    values(): IterableIterator<T> {
+        return this.sorted()[Symbol.iterator]()
+    }
+
+    entries(): IterableIterator<[T, T]> {
+        let nextIndex = 0
+        const elements = Array.from(super[Symbol.iterator]()).sort()
+
+        const iterator: IterableIterator<[T, T]> = {
+            [Symbol.iterator]: function() {
+                return this
+            },
+            next: function() {
+                let result
+                if (nextIndex < elements.length) {
+                    result = {
+                        value: [elements[nextIndex], elements[nextIndex]] as [
+                            T,
+                            T,
+                        ],
+                        done: false,
+                    }
+                    nextIndex += 1
+                    return result
+                }
+
+                return {
+                    value: undefined,
+                    done: true,
+                }
+            },
+        }
+
+        return iterator
+    }
+
     forEach(
         callbackfn: (value: T, value2: T, set: Set<T>) => void,
         thisArg?: any,
     ): void {
-        ;[...this].sort().forEach(v => callbackfn.call(thisArg, v, v, this))
+        for (const value of this) {
+            callbackfn.call(thisArg, value, value, this)
+        }
     }
-
-    // TODO use values() method to generate a sorted iterator?
 }
 const homeDirectory = os.homedir()
 

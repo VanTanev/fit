@@ -3,6 +3,7 @@ import crypto from 'crypto'
 import fs from 'fs'
 
 import { sha1, deflate, fileExists } from './utils'
+import { Storable } from './Storable'
 
 export class Database {
     constructor(private path: string) {}

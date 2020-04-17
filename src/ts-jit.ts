@@ -7,7 +7,6 @@ import { resolvePath } from './utils'
 import { Workspace }  from './Workspace'
 import { Database }  from './Database'
 import { Blob }  from './database/Blob'
-import { Entry }  from './Entry'
 import { Tree }  from './database/Tree'
 import { Commit }  from './database/Commit'
 import { Author }  from './database/Author'
@@ -40,22 +39,15 @@ function main(ARGV: string[]) {
             const rootPath = resolvePath(process.cwd())
             const gitPath = path.join(rootPath, '.git')
             const dbPath = path.join(gitPath, 'objects')
+            const indexPath = path.join(gitPath, 'index')
 
-            const workspace = new Workspace(rootPath)
             const database = new Database(dbPath)
+            const index = new Index(indexPath)
             const refs = new Refs(gitPath)
-            const parent = refs.readHead()
 
-            const entries = workspace.listFiles().map(path => {
-                const data = workspace.readFile(path)
-                const blob = new Blob(data)
-                database.store(blob)
+            index.load()
 
-                const stat = workspace.statFile(path)
-                return new Entry(path, blob.oid!, stat)
-            })
-
-            const root = Tree.build(entries)
+            const root = Tree.build(index.sortedEntries())
             root.traverse(tree => database.store(tree))
 
             const author = new Author(
@@ -63,6 +55,7 @@ function main(ARGV: string[]) {
                 process.env.GIT_AUTHOR_EMAIL!,
                 new Date(),
             )
+            const parent = refs.readHead()
             const message = fs.readFileSync(0).toString('utf8')
             const commit = new Commit(parent, root.oid!, author, message)
             database.store(commit)
@@ -82,6 +75,8 @@ function main(ARGV: string[]) {
             const workspace = new Workspace(rootPath)
             const database = new Database(dbPath)
             const index = new Index(indexPath)
+
+            index.loadForUpdate()
 
             if (!ARGV.length) {
                 console.error(`ts-jit: [add] a path is required`)

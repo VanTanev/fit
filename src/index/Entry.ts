@@ -1,6 +1,7 @@
 import { FileStats } from '../Workspace'
 import { Entry as DatabaseEntry } from '../Entry'
 import { Packer } from 'binary-packer'
+import path from 'path'
 
 export class Entry {
     static ENTRY_FORMAT = 'N10H40nZ*'
@@ -9,6 +10,7 @@ export class Entry {
     static EXECUTABLE_MODE = 0o0100755 as const
     static MAX_PATH_SIZE = 0xfff
     static ENTRY_BLOCK = 8
+    static ENTRY_MIN_SIZE = 64
 
     constructor(
         public ctime: number,
@@ -17,9 +19,7 @@ export class Entry {
         public mtimeNsec: bigint,
         public dev: bigint,
         public ino: bigint,
-        public mode:
-            | typeof Entry.REGULAR_MODE
-            | typeof Entry.EXECUTABLE_MODE,
+        public mode: typeof Entry.REGULAR_MODE | typeof Entry.EXECUTABLE_MODE,
         public uid: bigint,
         public gid: bigint,
         public size: bigint,
@@ -28,6 +28,15 @@ export class Entry {
         public flags: number,
         public path: string,
     ) {}
+
+    get parentDirectories(): string[] {
+        const parsed = path.parse(this.path)
+        return parsed.dir.length === 0 ? [] : parsed.dir.split(path.sep)
+    }
+
+    get basename(): string {
+        return path.parse(this.path).base
+    }
 
     get buffer(): Buffer {
         let buff = new Packer(Entry.ENTRY_FORMAT).pack([
@@ -88,5 +97,9 @@ export class Entry {
             filePath,
         )
     }
-}
 
+    static parse(buf: Buffer): Entry {
+        const data = new Packer(Entry.ENTRY_FORMAT).unpack(buf)
+        return new (Entry as any)(...data)
+    }
+}
