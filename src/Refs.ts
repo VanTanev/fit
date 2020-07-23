@@ -4,19 +4,25 @@ import * as T from 'fp-ts/lib/Task'
 import { pipe } from 'fp-ts/lib/pipeable'
 
 import * as fs from './fsUtils'
+import { Lockfile } from './Lockfile'
 
 export class Refs {
     constructor(readonly path: string) {}
 
     updateHead(oid: string): fs.TaskEitherNode {
-        return fs.writeFileCrashSafe(this.pathHead(), oid)
+        return pipe(
+            Lockfile.create(this.pathHead()),
+            TE.chain(lock => lock.write(oid)),
+            TE.chain(lock => lock.write("\n")),
+            TE.chain(lock => lock.commit()),
+        )
     }
 
     readHead(): T.Task<string | undefined> {
         return pipe(
             fs.readFile(this.pathHead()),
-            TE.map(buf => buf.toString().trim()),
-            TE.getOrElseW(() => T.of(void 0))
+            TE.map((buf) => buf.toString().trim()),
+            TE.getOrElseW(() => T.of(void 0)),
         )
     }
 

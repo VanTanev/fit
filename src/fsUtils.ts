@@ -37,6 +37,8 @@ export const readFile = (filePath: FS.PathLike): TaskEitherNode<Buffer> =>
 export const rename = (filePathFrom: FS.PathLike, filePathTo: FS.PathLike): TaskEitherNode =>
     TE.tryCatch(() => FS.promises.rename(filePathFrom, filePathTo), toErrorFS)
 
+export const unlink = (filePath: FS.PathLike): TaskEitherNode =>
+    TE.tryCatch(() => FS.promises.unlink(filePath), toErrorFS)
 export function fileExists(filePath: FS.PathLike): T.Task<boolean> {
     return async () => {
         try {

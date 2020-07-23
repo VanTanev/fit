@@ -1,11 +1,11 @@
 import * as PATH from 'path'
+import * as FS from 'fs'
+
 import * as TE from 'fp-ts/lib/TaskEither'
 import * as A from 'fp-ts/lib/Array'
 import * as AP from 'fp-ts/lib/Apply'
 import * as C from 'fp-ts/lib/Console'
 import { pipe } from 'fp-ts/lib/pipeable'
-import * as fs from '../fsUtils'
-import * as FS from 'fs'
 import { Do } from 'fp-ts-contrib/lib/Do'
 
 import { Workspace } from '../Workspace'
@@ -46,7 +46,7 @@ export function commit(): TE.TaskEither<Error, any> {
                 A.array.traverse(TE.taskEither)(files, (f) => database.store(f.blob)),
                 database.store(tree),
                 database.store(commit),
-                fs.writeFileCrashSafe(PATH.join(gitPath, 'HEAD'), commit.oid),
+                refs.updateHead(commit.oid),
                 TE.rightIO(C.log(`[${!parent ? '(root-commit) ' : ''}${commit.oid}] ${commit.message.split('\n')[0]}`)),
             )
         }),
