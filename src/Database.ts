@@ -11,7 +11,6 @@ export class Database {
 
     store(o: DatabaseObject): fs.TaskEitherNode {
         let objectPath = PATH.join(this.path, o.oid.substring(0, 2), o.oid.substring(2))
-        console.log(objectPath)
         return pipe(
             TE.rightTask(fs.fileExists(objectPath)),
             TE.chain((exists) =>

@@ -11,15 +11,13 @@ export class Workspace {
 
     constructor(private path: string) {}
 
-    readFile(filePath: string): fs.TaskEitherNode<FileBlob> {
+    readFilesInWorkspace(): fs.TaskEitherNode<FileBlob[]> {
         return pipe(
-            fs.readFile(PATH.join(this.path, filePath)),
-            TE.map((buffer) => fileBlob(filePath, new Blob(buffer))),
+            this.listFiles(),
+            TE.chain((paths) =>
+                A.array.traverse(TE.taskEither)(paths, (path) => this.readFile(path)),
+            ),
         )
-    }
-
-    readFiles(paths: string[]): fs.TaskEitherNode<FileBlob[]> {
-        return A.array.traverse(TE.taskEither)(paths, (path) => this.readFile(path))
     }
 
     listFiles(): fs.TaskEitherNode<string[]> {
@@ -28,5 +26,12 @@ export class Workspace {
 
     private filterDirs(dirs: string[]): string[] {
         return dirs.filter((dir) => !Workspace.IGNORE.includes(dir))
+    }
+
+    private readFile(filePath: string): fs.TaskEitherNode<FileBlob> {
+        return pipe(
+            fs.readFile(PATH.join(this.path, filePath)),
+            TE.map((buffer) => fileBlob(filePath, new Blob(buffer))),
+        )
     }
 }
