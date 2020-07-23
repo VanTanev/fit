@@ -1,6 +1,5 @@
 import * as PATH from 'path'
-import * as IO from 'fp-ts/lib/IO'
-import * as IE from 'fp-ts/lib/IOEither'
+import * as TE from 'fp-ts/lib/TaskEither'
 import { pipe } from 'fp-ts/lib/pipeable'
 
 import { DatabaseObject } from './database/DatabaseObject'
@@ -10,15 +9,15 @@ import { deflate } from './util'
 export class Database {
     constructor(private path: string) {}
 
-    store(o: DatabaseObject): fs.IOEitherNode {
+    store(o: DatabaseObject): fs.TaskEitherNode {
         let objectPath = PATH.join(this.path, o.oid.substring(0, 2), o.oid.substring(2))
+        console.log(objectPath)
         return pipe(
-            objectPath,
-            fs.fileExists,
-            IO.chain((exists) =>
+            TE.rightTask(fs.fileExists(objectPath)),
+            TE.chain((exists) =>
                 exists
-                    ? IE.right(void 0)
-                    : fs.writeFileSyncCrashSafe(objectPath, deflate(o.content)),
+                    ? TE.right(void 0)
+                    : fs.writeFileCrashSafe(objectPath, deflate(o.content)),
             ),
         )
     }

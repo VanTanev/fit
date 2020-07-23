@@ -2,83 +2,85 @@ import CRYPTO from 'crypto'
 import * as FS from 'fs'
 import * as PATH from 'path'
 
-import * as IO from 'fp-ts/lib/IO'
-import * as IE from 'fp-ts/lib/IOEither'
+import * as T from 'fp-ts/lib/Task'
+import * as TE from 'fp-ts/lib/TaskEither'
 import { pipe } from 'fp-ts/lib/pipeable'
 
-export type IOEitherNode<A = void> = IE.IOEither<NodeJS.ErrnoException, A>
+export type TaskEitherNode<A = void> = TE.TaskEither<NodeJS.ErrnoException, A>
 
-export const openSync = (filePath: string, mode: FS.Mode): IOEitherNode<number> =>
-    IE.tryCatch(() => FS.openSync(filePath, mode), toErrorFS)
+export const open = (
+    filePath: FS.PathLike,
+    mode: FS.Mode,
+): TaskEitherNode<FS.promises.FileHandle> =>
+    TE.tryCatch(() => FS.promises.open(filePath, mode), toErrorFS)
 
-export const writeFileSync = (file: string | number, content: string | Buffer): IOEitherNode =>
-    IE.tryCatch(() => FS.writeFileSync(file, content), toErrorFS)
+export const writeFile = (
+    file: FS.promises.FileHandle | FS.PathLike,
+    content: string | Buffer,
+): TaskEitherNode => TE.tryCatch(() => FS.promises.writeFile(file, content), toErrorFS)
 
-export const closeSync = (file: number): IOEitherNode =>
-    IE.tryCatch(() => FS.closeSync(file), toErrorFS)
+export const close = (file: FS.promises.FileHandle): TaskEitherNode =>
+    TE.tryCatch(() => file.close(), toErrorFS)
 
-export const mkdirSync = (dirPath: string): IOEitherNode =>
-    IE.tryCatch(() => {
-        FS.mkdirSync(dirPath, { recursive: true })
-    }, toErrorFS)
+export const mkdir = (dirPath: string, opts: FS.MakeDirectoryOptions = {}): TaskEitherNode =>
+    TE.tryCatch(
+        () => FS.promises.mkdir(dirPath, { recursive: true, ...opts }).then(() => {}),
+        toErrorFS,
+    )
 
-export const readdirSync = (dirPath: string): IOEitherNode<string[]> =>
-    IE.tryCatch(() => FS.readdirSync(dirPath), toErrorFS)
+export const readdir = (dirPath: FS.PathLike): TaskEitherNode<string[]> =>
+    TE.tryCatch(() => FS.promises.readdir(dirPath), toErrorFS)
 
-export const readFileSync = (filePath: string): IOEitherNode<Buffer> =>
-    IE.tryCatch(() => FS.readFileSync(filePath), toErrorFS)
+export const readFile = (filePath: FS.PathLike): TaskEitherNode<Buffer> =>
+    TE.tryCatch(() => FS.promises.readFile(filePath), toErrorFS)
 
-export const renameSync = (filePathFrom: string, filePathTo: string): IOEitherNode =>
-    IE.tryCatch(() => FS.renameSync(filePathFrom, filePathTo), toErrorFS)
+export const rename = (filePathFrom: FS.PathLike, filePathTo: FS.PathLike): TaskEitherNode =>
+    TE.tryCatch(() => FS.promises.rename(filePathFrom, filePathTo), toErrorFS)
 
-export function fileExists(filePath: string): IO.IO<boolean> {
-    return IO.fromIO(() => {
+export function fileExists(filePath: FS.PathLike): T.Task<boolean> {
+    return async () => {
         try {
-            FS.accessSync(filePath, FS.constants.F_OK)
+            await FS.promises.access(filePath, FS.constants.F_OK)
             return true
         } catch (e) {
             return false
         }
-    })
+    }
 }
 
 /**
  * Write to a temp file first, and then rename to final destination
  */
-export function writeFileSyncCrashSafe(
-    filePath: string,
-    content: string | Buffer,
-): IE.IOEither<NodeJS.ErrnoException, void> {
+export function writeFileCrashSafe(filePath: string, content: string | Buffer): TaskEitherNode {
     let dir = PATH.dirname(filePath)
-    let temp = PATH.join(dir, 'tmp_object_' + CRYPTO.randomBytes(20).toString('hex'))
+    let tempPath = PATH.join(dir, generateTempName())
 
     return pipe(
-        openOrCreateFileForWriting(temp),
-        IE.chainFirst((file) => writeFileSync(file, content)),
-        IE.chain(closeSync),
-        IE.chain(() => renameSync(temp, filePath)),
+        openOrCreateFileForWriting(tempPath),
+        TE.chainFirst((file) => writeFile(file, content)),
+        TE.chain(close),
+        TE.chain(() => rename(tempPath, filePath)),
     )
 }
 
-export function openOrCreateFileForWriting(filePath: string): IOEitherNode<number> {
-    let dir = PATH.dirname(filePath)
+const generateTempName = (): string => 'tmp_object_' + CRYPTO.randomBytes(20).toString('hex')
 
+export function openOrCreateFileForWriting(filePath: string): TaskEitherNode<FS.promises.FileHandle> {
     return pipe(
-        openSync(filePath, 'wx+'),
-        IE.orElse((e) =>
-            // if we get ENOENT
+        open(filePath, 'wx+'),
+        TE.orElse((e) =>
+            // if we get ENOENT (no such file or directory), that means the
+            // containing directory does not exist
             e.code === 'ENOENT'
                 ? pipe(
                       // try to create the directory for the file
-                      mkdirSync(dir),
+                      mkdir(PATH.dirname(filePath)),
                       // and retry opening
-                      IE.chain(() => openSync(filePath, 'wx+')),
+                      TE.chain(() => open(filePath, 'wx+')),
                   )
-                : IE.left(e),
+                : TE.left(e),
         ),
     )
 }
 
-function toErrorFS(e: unknown) {
-    return e as NodeJS.ErrnoException
-}
+const toErrorFS = (e: unknown) => e as NodeJS.ErrnoException

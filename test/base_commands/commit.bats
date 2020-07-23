@@ -22,7 +22,7 @@ setup() {
 
   run $EXE commit
 
-  assert_output --regexp '\[\(root-commit\) .* commit message\]'
+  assert_output --regexp '^\[\(root-commit\) .* commit message\]$'
   # object for hello.txt
   assert_file_exist .git/objects/ce/013625030ba8dba906f756967f9e9ca394464a
   # object for the tree

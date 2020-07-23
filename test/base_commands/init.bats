@@ -28,3 +28,13 @@ setup() {
   assert_dir_exist "$DIR/.git/objects"
   assert_dir_exist "$DIR/.git/refs"
 }
+
+@test "init on root owned dirs should not work" {
+  skip
+  DIR="init-private"
+  mkdir "$DIR"
+  sudo chown root "$DIR"
+  run $EXE init "$DIR"
+  assert_failure
+  assert_output 'asdf'
+}

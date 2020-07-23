@@ -1,5 +1,5 @@
 import * as PATH from 'path'
-import * as IE from 'fp-ts/lib/IOEither'
+import * as TE from 'fp-ts/lib/TaskEither'
 import * as A from 'fp-ts/lib/Array'
 import * as AP from 'fp-ts/lib/Apply'
 import * as C from 'fp-ts/lib/Console'
@@ -12,7 +12,7 @@ import { Tree, TreeEntry } from '../database/Tree'
 import { Commit } from '../database/Commit'
 import { Author } from '../database/Author'
 
-export function commit(): IE.IOEither<Error, any> {
+export function commit(): TE.TaskEither<Error, any> {
     let rootPath = process.cwd()
     let gitPath = PATH.join(rootPath, '.git')
     let dbPath = PATH.join(gitPath, 'objects')
@@ -22,8 +22,8 @@ export function commit(): IE.IOEither<Error, any> {
 
     return pipe(
         workspace.listFiles(),
-        IE.chain((filesList) => workspace.readFiles(filesList)),
-        IE.chain((files) => {
+        TE.chain((filesList) => workspace.readFiles(filesList)),
+        TE.chain((files) => {
             let entries = files.map((fb) => new TreeEntry(fb.path, fb.blob.oid))
             let tree = new Tree(entries)
             let commit = new Commit(
@@ -32,14 +32,13 @@ export function commit(): IE.IOEither<Error, any> {
                 new Author('Ivan', 'vankata.t@gmail.com'),
                 'commit message',
             )
-            let storeBlobs = A.array.traverse(IE.ioEither)(files, (f) => database.store(f.blob))
 
-            return AP.sequenceT(IE.ioEither)(
-                storeBlobs,
+            return AP.sequenceT(TE.taskEither)(
+                A.array.traverse(TE.taskEither)(files, (f) => database.store(f.blob)),
                 database.store(tree),
                 database.store(commit),
-                fs.writeFileSyncCrashSafe(PATH.join(gitPath, 'HEAD'), commit.oid),
-                IE.rightIO(C.log(`[(root-commit) ${commit.oid} ${commit.message.split('\n')[0]}]`)),
+                fs.writeFileCrashSafe(PATH.join(gitPath, 'HEAD'), commit.oid),
+                TE.rightIO(C.log(`[(root-commit) ${commit.oid} ${commit.message.split('\n')[0]}]`)),
             )
         }),
     )
