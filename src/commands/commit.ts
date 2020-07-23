@@ -33,7 +33,7 @@ export function commit(): TE.TaskEither<Error, any> {
     return pipe(
         inputs,
         TE.chain(({ files, parent, commitMessage }) => {
-            let entries = files.map((fb) => new TreeEntry(fb.path, fb.blob.oid))
+            let entries = files.map((fb) => new TreeEntry(fb.path, fb.blob.oid, fb.stat))
             let tree = new Tree(entries)
             let commit = new Commit(
                 parent,

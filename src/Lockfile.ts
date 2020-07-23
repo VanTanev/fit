@@ -37,7 +37,7 @@ export class Lockfile {
                     case 'ENOENT':
                         throw new MissingParent(err.message)
 
-                    case 'EACCESS':
+                    case 'EACCES':
                         throw new NoPermission(err.message)
                 }
                 throw e

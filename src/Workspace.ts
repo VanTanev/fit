@@ -1,10 +1,12 @@
 import * as PATH from 'path'
+
 import { pipe } from 'fp-ts/lib/pipeable'
 import * as TE from 'fp-ts/lib/TaskEither'
 import * as A from 'fp-ts/lib/Array'
+import { Do } from 'fp-ts-contrib/lib/Do'
 
 import * as fs from './fsUtils'
-import { Blob, fileBlob, FileBlob } from './database/Blob'
+import { fileBlob, FileBlob } from './database/Blob'
 
 export class Workspace {
     static IGNORE = ['.', '..', '.git', 'node_modules']
@@ -28,10 +30,11 @@ export class Workspace {
         return dirs.filter((dir) => !Workspace.IGNORE.includes(dir))
     }
 
-    private readFile(filePath: string): fs.TaskEitherNode<FileBlob> {
-        return pipe(
-            fs.readFile(PATH.join(this.path, filePath)),
-            TE.map((buffer) => fileBlob(filePath, new Blob(buffer))),
-        )
+    private readFile(relativePath: string): fs.TaskEitherNode<FileBlob> {
+        let filePath = PATH.join(this.path, relativePath)
+        return Do(TE.taskEither)
+            .bindL('buffer', () => fs.readFile(filePath))
+            .bindL('stat', () => fs.stat(filePath))
+            .return(({ buffer, stat }) => fileBlob(relativePath, buffer, stat))
     }
 }

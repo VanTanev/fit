@@ -32,7 +32,6 @@ setup() {
 }
 
 @test "second commit" {
-  mkdir node_modules
   echo "hello" > hello.txt
   echo "commit message" | $EXE commit
 
@@ -44,4 +43,16 @@ setup() {
   assert_file_exist .git/objects/4f/5b27863af382ba25fbd34e92dbb1f1e062c231
   # object for tree
   assert_file_exist .git/objects/23/48d20078cb4814bc60469b1238ac48ab6a0465
+}
+
+@test "commit executable" {
+  echo "hello" > hello.txt
+  chmod +x hello.txt
+
+  echo "commit message" | $EXE commit
+
+  # object for hello.txt
+  assert_file_exist .git/objects/ce/013625030ba8dba906f756967f9e9ca394464a
+  # object for the tree
+  assert_file_exist .git/objects/98/fdf9811d717ff3732a85097d50ccacd67d941d
 }

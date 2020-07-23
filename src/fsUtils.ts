@@ -1,4 +1,5 @@
 import CRYPTO from 'crypto'
+import { Do } from 'fp-ts-contrib/lib/Do'
 import * as FS from 'fs'
 import * as PATH from 'path'
 
@@ -34,6 +35,30 @@ export const readdir = (dirPath: FS.PathLike): TaskEitherNode<string[]> =>
 export const readFile = (filePath: FS.PathLike): TaskEitherNode<Buffer> =>
     TE.tryCatch(() => FS.promises.readFile(filePath), toErrorFS)
 
+export type Stats = FS.BigIntStats & { userMode: '100644' | '100755' }
+export const stat = (
+    filePath: FS.PathLike,
+): TaskEitherNode<Stats> => {
+    let stat = TE.tryCatch(
+        () =>
+            ((FS.promises.stat as unknown) as (
+                path: FS.PathLike,
+                opts?: any,
+            ) => Promise<FS.BigIntStats>)(filePath, { bigint: true }),
+        toErrorFS,
+    )
+    let userMode = pipe(
+        TE.tryCatch(() => FS.promises.access(filePath, FS.constants.X_OK), toErrorFS),
+        TE.map(() => '100755' as const),
+        TE.orElse((e) => (e.code === 'EACCES' ? TE.right('100644' as const) : TE.left(e))),
+    )
+
+    return Do(TE.taskEither)
+        .bind('stat', stat)
+        .bind('userMode', userMode)
+        .return(({ stat, userMode }) => ({ ...stat, userMode }))
+}
+
 export const rename = (filePathFrom: FS.PathLike, filePathTo: FS.PathLike): TaskEitherNode =>
     TE.tryCatch(() => FS.promises.rename(filePathFrom, filePathTo), toErrorFS)
 
@@ -67,7 +92,9 @@ export function writeFileCrashSafe(filePath: string, content: string | Buffer): 
 
 const generateTempName = (): string => 'tmp_object_' + CRYPTO.randomBytes(20).toString('hex')
 
-export function openOrCreateFileForWriting(filePath: string): TaskEitherNode<FS.promises.FileHandle> {
+export function openOrCreateFileForWriting(
+    filePath: string,
+): TaskEitherNode<FS.promises.FileHandle> {
     return pipe(
         open(filePath, 'wx+'),
         TE.orElse((e) =>
