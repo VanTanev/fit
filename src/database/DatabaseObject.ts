@@ -1,22 +1,22 @@
-import { sha1} from '../util'
+import { sha1 } from '../util'
 export abstract class DatabaseObject {
     abstract readonly type: string
-    abstract readonly buffer: Buffer
+    abstract readonly data: Buffer
 
-    private _content!: Buffer
+    private _buffer!: Buffer
     private _oid!: string
 
     constructor() {}
 
-    get content(): Buffer {
-        this._content =
-            this._content ??
-            Buffer.concat([Buffer.from(`${this.type} ${this.buffer.byteLength}\0`), this.buffer])
-        return this._content
+    get buffer(): Buffer {
+        this._buffer =
+            this._buffer ??
+            Buffer.concat([Buffer.from(`${this.type} ${this.data.byteLength}\0`), this.data])
+        return this._buffer
     }
 
     get oid(): string {
-        this._oid = this._oid ?? sha1(this.content)
+        this._oid = this._oid ?? sha1(this.buffer)
         return this._oid
     }
 }

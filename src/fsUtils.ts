@@ -56,7 +56,7 @@ export const stat = (
     return Do(TE.taskEither)
         .bind('stat', stat)
         .bind('userMode', userMode)
-        .return(({ stat, userMode }) => ({ ...stat, userMode }))
+        .return(({ stat, userMode }) => (Object.assign(stat, { userMode })))
 }
 
 export const rename = (filePathFrom: FS.PathLike, filePathTo: FS.PathLike): TaskEitherNode =>

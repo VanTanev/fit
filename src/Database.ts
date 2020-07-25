@@ -9,14 +9,12 @@ import { deflate } from './util'
 export class Database {
     constructor(private path: string) {}
 
-    store(o: DatabaseObject): fs.TaskEitherNode {
+    store = (o: DatabaseObject): fs.TaskEitherNode => {
         let objectPath = PATH.join(this.path, o.oid.substring(0, 2), o.oid.substring(2))
         return pipe(
             TE.rightTask(fs.fileExists(objectPath)),
             TE.chain((exists) =>
-                exists
-                    ? TE.right(void 0)
-                    : fs.writeFileCrashSafe(objectPath, deflate(o.content)),
+                exists ? TE.right(void 0) : fs.writeFileCrashSafe(objectPath, deflate(o.buffer)),
             ),
         )
     }

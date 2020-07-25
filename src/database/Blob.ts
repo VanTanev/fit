@@ -14,7 +14,7 @@ export function fileBlob(path: string, buf: Buffer, stat: fs.Stats): FileBlob {
 
 export class Blob extends DatabaseObject {
     type: 'blob' = 'blob'
-    constructor(readonly buffer: Buffer) {
+    constructor(readonly data: Buffer) {
         super()
     }
 }

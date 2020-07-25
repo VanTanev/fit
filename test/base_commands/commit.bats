@@ -35,14 +35,16 @@ setup() {
   echo "hello" > hello.txt
   echo "commit message" | $EXE commit
 
-  echo "word" > world.txt
+  echo "world" > world.txt
   output="$(echo "second commit message" | $EXE commit)"
 
   assert_output --regexp '^\[.*\] second commit message$'
+  # object for hello.txt
+  assert_file_exist .git/objects/ce/013625030ba8dba906f756967f9e9ca394464a
   # object for world.txt
-  assert_file_exist .git/objects/4f/5b27863af382ba25fbd34e92dbb1f1e062c231
+  assert_file_exist .git/objects/cc/628ccd10742baea8241c5924df992b5c019f71
   # object for tree
-  assert_file_exist .git/objects/23/48d20078cb4814bc60469b1238ac48ab6a0465
+  assert_file_exist .git/objects/88/e38705fdbd3608cddbe904b67c731f3234c45b
 }
 
 @test "commit executable" {
@@ -55,4 +57,19 @@ setup() {
   assert_file_exist .git/objects/ce/013625030ba8dba906f756967f9e9ca394464a
   # object for the tree
   assert_file_exist .git/objects/98/fdf9811d717ff3732a85097d50ccacd67d941d
+}
+
+@test "commit nested" {
+  echo "hello" > hello.txt
+  mkdir -p a/b/c/e
+  echo "world" > a/b/c/e/world.txt
+
+  echo "commit message" | $EXE commit
+
+  # object for hello.txt
+  assert_file_exist .git/objects/ce/013625030ba8dba906f756967f9e9ca394464a
+  # object for world.txt
+  assert_file_exist .git/objects/cc/628ccd10742baea8241c5924df992b5c019f71
+  # object for the tree
+  assert_file_exist .git/objects/19/075f6703746d81a3329bca02c4b56ea3b1b66e
 }

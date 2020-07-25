@@ -3,16 +3,16 @@ import {Author} from './Author'
 
 export class Commit extends DatabaseObject {
     constructor(
-        public parentId: string | undefined,
-        public treeId: string,
-        public author: Author,
-        public message: string,
+        readonly parentId: string | undefined,
+        readonly treeId: string,
+        readonly author: Author,
+        readonly message: string,
     ) {
         super()
     }
 
     type: 'commit' = 'commit'
-    get buffer(): Buffer {
+    get data(): Buffer {
         let lines: string[] = []
         lines.push(`tree ${this.treeId}`)
         if (this.parentId) {

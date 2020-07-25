@@ -8,6 +8,8 @@ import { Do } from 'fp-ts-contrib/lib/Do'
 import * as fs from './fsUtils'
 import { fileBlob, FileBlob } from './database/Blob'
 
+const traverse = A.array.traverse(TE.taskEither)
+
 export class Workspace {
     static IGNORE = ['.', '..', '.git', 'node_modules']
 
@@ -16,18 +18,31 @@ export class Workspace {
     readFilesInWorkspace(): fs.TaskEitherNode<FileBlob[]> {
         return pipe(
             this.listFiles(),
-            TE.chain((paths) =>
-                A.array.traverse(TE.taskEither)(paths, (path) => this.readFile(path)),
-            ),
+            TE.chain((paths) => traverse(paths, (path) => this.readFile(path))),
         )
     }
 
-    listFiles(): fs.TaskEitherNode<string[]> {
-        return pipe(fs.readdir(this.path), TE.map(this.filterDirs))
-    }
+    listFiles(dir = this.path): fs.TaskEitherNode<string[]> {
+        let readdir = pipe(fs.readdir(dir), TE.map(filterIgnore))
+        let recurse = (paths: string[]): fs.TaskEitherNode<string[]> => {
+            return pipe(
+                traverse(paths, (path) => {
+                    let filePath = PATH.join(dir, path)
 
-    private filterDirs(dirs: string[]): string[] {
-        return dirs.filter((dir) => !Workspace.IGNORE.includes(dir))
+                    return pipe(
+                        fs.stat(filePath),
+                        TE.chain((stat) =>
+                            stat.isDirectory()
+                                ? this.listFiles(filePath)
+                                : TE.right([PATH.relative(this.path, filePath)]),
+                        ),
+                    )
+                }),
+                TE.map((paths) => paths.flat()),
+            )
+        }
+
+        return pipe(readdir, TE.chain(recurse))
     }
 
     private readFile(relativePath: string): fs.TaskEitherNode<FileBlob> {
@@ -37,4 +52,8 @@ export class Workspace {
             .bindL('stat', () => fs.stat(filePath))
             .return(({ buffer, stat }) => fileBlob(relativePath, buffer, stat))
     }
+}
+
+function filterIgnore(paths: string[]): string[] {
+    return paths.filter((path) => !Workspace.IGNORE.includes(path))
 }
