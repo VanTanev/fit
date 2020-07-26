@@ -12,9 +12,9 @@ export class Refs {
     updateHead(oid: string): fs.TaskEitherNode {
         return pipe(
             Lockfile.create(this.pathHead()),
-            TE.chain(lock => lock.write(oid)),
-            TE.chain(lock => lock.write("\n")),
-            TE.chain(lock => lock.commit()),
+            TE.chain((lock) => lock.write(oid)),
+            TE.chain((lock) => lock.write('\n')),
+            TE.chain((lock) => lock.commit()),
         )
     }
 

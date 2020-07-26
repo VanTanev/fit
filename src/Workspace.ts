@@ -6,27 +6,20 @@ import * as A from 'fp-ts/lib/Array'
 import { Do } from 'fp-ts-contrib/lib/Do'
 
 import * as fs from './fsUtils'
-import { fileBlob, FileBlob } from './database/Blob'
+import { FileBlob } from './database/Blob'
 
-const traverse = A.array.traverse(TE.taskEither)
+const traverseArr = A.array.traverse(TE.taskEither)
 
 export class Workspace {
     static IGNORE = ['.', '..', '.git', 'node_modules']
 
-    constructor(private path: string) {}
+    constructor(readonly path: string) {}
 
-    readFilesInWorkspace(): fs.TaskEitherNode<FileBlob[]> {
-        return pipe(
-            this.listFiles(),
-            TE.chain((paths) => traverse(paths, (path) => this.readFile(path))),
-        )
-    }
-
-    listFiles(dir = this.path): fs.TaskEitherNode<string[]> {
+    listFiles = (dir = this.path): fs.TaskEitherNode<string[]> => {
         let readdir = pipe(fs.readdir(dir), TE.map(filterIgnore))
         let recurse = (paths: string[]): fs.TaskEitherNode<string[]> => {
             return pipe(
-                traverse(paths, (path) => {
+                traverseArr(paths, (path) => {
                     let filePath = PATH.join(dir, path)
 
                     return pipe(
@@ -45,12 +38,12 @@ export class Workspace {
         return pipe(readdir, TE.chain(recurse))
     }
 
-    private readFile(relativePath: string): fs.TaskEitherNode<FileBlob> {
+    readFile = (relativePath: string): fs.TaskEitherNode<FileBlob> => {
         let filePath = PATH.join(this.path, relativePath)
         return Do(TE.taskEither)
             .bindL('buffer', () => fs.readFile(filePath))
             .bindL('stat', () => fs.stat(filePath))
-            .return(({ buffer, stat }) => fileBlob(relativePath, buffer, stat))
+            .return(({ buffer, stat }) => new FileBlob(relativePath, buffer, stat))
     }
 }
 

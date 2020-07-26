@@ -1,5 +1,6 @@
 import { sha1 } from '../util'
-export abstract class DatabaseObject {
+
+export abstract class Storable {
     abstract readonly type: string
     abstract readonly data: Buffer
 

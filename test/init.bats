@@ -1,15 +1,21 @@
 #!/usr/bin/env bats
 # vi: ft=bash
-load "$(pwd)/node_modules/bats-support/load.bash"
-load "$(pwd)/node_modules/bats-assert/load.bash"
-load "$(pwd)/node_modules/bats-file/load.bash"
+
+load "test_helper"
 
 setup() {
-    EXE="$(pwd)/bin/fptsjit"
-    TEST_TEMP_DIR="test/fixtures"
+    EXE="$(pwd)/bin/fit"
+    TEST_TEMP_DIR="$(temp_make)"
+    BATSLIB_FILE_PATH_REM="#${TEST_TEMP_DIR}"
+    echo $BATSLIB_TEMP_PRESERVE_ON_FAILURE
+    BATSLIB_FILE_PATH_ADD='<temp>'
     rm -rf "$TEST_TEMP_DIR"
     mkdir -p "$TEST_TEMP_DIR"
     cd "$TEST_TEMP_DIR"
+}
+
+teardown() {
+    temp_del "$TEST_TEMP_DIR"
 }
 
 @test "init without directoy" {

@@ -7,7 +7,7 @@ import * as O from 'fp-ts/lib/Option'
 import { pipe } from 'fp-ts/lib/pipeable'
 import invariant from 'tiny-invariant'
 
-import { DatabaseObject } from './DatabaseObject'
+import { Storable } from './Storable'
 import * as fs from '../fsUtils'
 
 export class Entry {
@@ -24,9 +24,7 @@ export class Entry {
         let dir = PATH.parse(this.filePath).dir
         if (dir.length === 0) return []
 
-        return (
-            dir.split(PATH.sep).map((_, i, dirs) => dirs.slice(0, i + 1).join(PATH.sep))
-        )
+        return dir.split(PATH.sep).map((_, i, dirs) => dirs.slice(0, i + 1).join(PATH.sep))
     }
 
     get basename(): string {
@@ -39,7 +37,7 @@ const byFilePath = pipe(
     Ord.contramap((e: Entry) => e.filePath),
 )
 
-export class Tree extends DatabaseObject {
+export class Tree extends Storable {
     static ENTRY_FORMAT = 'Z*H40'
 
     type: 'tree' = 'tree'
@@ -85,7 +83,10 @@ export class Tree extends DatabaseObject {
         invariant(tree instanceof Tree)
 
         return new Tree(
-            pipe(this.items, insertAt<Tree | Entry>(PATH.parse(dirname).base, tree.addEntry(restDirs, entry))),
+            pipe(
+                this.items,
+                insertAt<Tree | Entry>(PATH.parse(dirname).base, tree.addEntry(restDirs, entry)),
+            ),
         )
     }
 

@@ -3,4 +3,4 @@
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-ts-node -T "$DIR/../src/fptsjit.ts" "$@"
+ts-node -P "$DIR/../tsconfig.json" -T "$DIR/../src/fit.ts" "$@"

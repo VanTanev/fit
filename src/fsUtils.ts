@@ -36,9 +36,7 @@ export const readFile = (filePath: FS.PathLike): TaskEitherNode<Buffer> =>
     TE.tryCatch(() => FS.promises.readFile(filePath), toErrorFS)
 
 export type Stats = FS.BigIntStats & { userMode: '100644' | '100755' }
-export const stat = (
-    filePath: FS.PathLike,
-): TaskEitherNode<Stats> => {
+export const stat = (filePath: FS.PathLike): TaskEitherNode<Stats> => {
     let stat = TE.tryCatch(
         () =>
             ((FS.promises.stat as unknown) as (
@@ -56,7 +54,7 @@ export const stat = (
     return Do(TE.taskEither)
         .bind('stat', stat)
         .bind('userMode', userMode)
-        .return(({ stat, userMode }) => (Object.assign(stat, { userMode })))
+        .return(({ stat, userMode }) => Object.assign(stat, { userMode }))
 }
 
 export const rename = (filePathFrom: FS.PathLike, filePathTo: FS.PathLike): TaskEitherNode =>

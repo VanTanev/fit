@@ -17,6 +17,9 @@ import { Commit } from '../database/Commit'
 import { Author } from '../database/Author'
 import { Refs } from '../Refs'
 
+let traverseArr = A.array.traverse(TE.taskEither)
+let traverseMap = M.getWitherable(Ord.ordString).traverse(TE.taskEither)
+
 export function commit(): TE.TaskEither<Error, any> {
     let rootPath = process.cwd()
     let gitPath = PATH.join(rootPath, '.git')
@@ -27,7 +30,8 @@ export function commit(): TE.TaskEither<Error, any> {
     let refs = new Refs(gitPath)
 
     let inputs = Do(TE.taskEither)
-        .bind('files', workspace.readFilesInWorkspace())
+        .bind('fileList', workspace.listFiles())
+        .bindL('files', ({ fileList }) => traverseArr(fileList, workspace.readFile))
         .bindL('parent', () => TE.fromTask(refs.readHead()))
         .bindL('commitMessage', () => TE.rightIO(() => FS.readFileSync(0).toString('utf8')))
         .done()
@@ -35,7 +39,7 @@ export function commit(): TE.TaskEither<Error, any> {
     return pipe(
         inputs,
         TE.chain(({ files, parent, commitMessage }) => {
-            let entries = files.map((fb) => new Entry(fb.path, fb.blob.oid, fb.stat))
+            let entries = files.map((f) => new Entry(f.filePath, f.oid, f.stat))
             let tree = Tree.build(entries)
             let commit = new Commit(
                 parent,
@@ -44,18 +48,15 @@ export function commit(): TE.TaskEither<Error, any> {
                 commitMessage,
             )
 
-            let traverseArr = A.array.traverse(TE.taskEither)
-            let traverseMap = M.getWitherable(Ord.ordString).traverse(TE.taskEither)
-
             let recursivelyStoreTree = (t: Tree): TE.TaskEither<NodeJS.ErrnoException, void> => {
                 return pipe(
                     db.store(t),
-                    TE.chain(() => traverseMap(t.trees, recursivelyStoreTree))
+                    TE.chain(() => traverseMap(t.trees, recursivelyStoreTree)),
                 ) as any
             }
 
             return AP.sequenceT(TE.taskEither)(
-                traverseArr(files, (f) => db.store(f.blob)),
+                traverseArr(files, db.store),
                 db.store(tree),
                 recursivelyStoreTree(tree),
                 db.store(commit),

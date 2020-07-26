@@ -1,7 +1,7 @@
-import {DatabaseObject} from './DatabaseObject'
-import {Author} from './Author'
+import { Storable } from './Storable'
+import { Author } from './Author'
 
-export class Commit extends DatabaseObject {
+export class Commit extends Storable {
     constructor(
         readonly parentId: string | undefined,
         readonly treeId: string,
