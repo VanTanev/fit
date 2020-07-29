@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "BATSLIB_TEMP_PRESERVE_ON_FAILURE=1 bats -j 16 test"
+    "test": "bin/test",
+    "test:bats": "BATSLIB_TEMP_PRESERVE_ON_FAILURE=1 bats -j 16"
   },
   "author": "Ivan Tanev",
   "license": "Apache-2.0",

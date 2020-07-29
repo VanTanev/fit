@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# vi: ft=bash
+
+TESTS="${@:-test}"
+
+npm run test:bats "$TESTS"
