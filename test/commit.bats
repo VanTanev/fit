@@ -3,20 +3,6 @@
 
 load "test_helper"
 
-setup() {
-    EXE="timeout 2s $(pwd)/bin/fit"
-    TEST_TEMP_DIR="$(temp_make)"
-    BATSLIB_FILE_PATH_REM="#${TEST_TEMP_DIR}"
-    BATSLIB_FILE_PATH_ADD='<temp>'
-    rm -rf "$TEST_TEMP_DIR"
-    mkdir -p "$TEST_TEMP_DIR"
-    cd "$TEST_TEMP_DIR"
-    $EXE init
-}
-teardown() {
-    temp_del "$TEST_TEMP_DIR"
-}
-
 @test "root commit" {
   mkdir node_modules
   echo "hello" > hello.txt

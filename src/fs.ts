@@ -7,12 +7,13 @@ import * as T from 'fp-ts/lib/Task'
 import * as TE from 'fp-ts/lib/TaskEither'
 import { pipe } from 'fp-ts/lib/pipeable'
 
+export type TaskEitherNode<A = void, E = NodeJS.ErrnoException> = TE.TaskEither<E, A>
+
 // utils
 
-export type TaskEitherNode<A = void> = TE.TaskEither<NodeJS.ErrnoException, A>
 const toErrorFS = (e: unknown) => e as NodeJS.ErrnoException
 
-function taskify<F extends (...args: any[]) => any, R = PromiseType<ReturnType<F>>>(
+function taskify<F extends (...args: any[]) => any, R extends PromiseType<ReturnType<F>>>(
     f: F,
 ): (...args: Parameters<F>) => TaskEitherNode<R> {
     return function () {

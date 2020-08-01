@@ -4,10 +4,12 @@ import * as C from 'fp-ts/lib/Console'
 
 import { init } from './commands/init'
 import { commit } from './commands/commit'
+import { add } from './commands/add'
 
 const COMMANDS = {
     init,
     commit,
+    add
 }
 
 function main(args: string[]): TE.TaskEither<Error, void> {
