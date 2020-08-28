@@ -3,13 +3,13 @@ import * as fs from '../fsUtils'
 
 export class Blob extends Storable {
     type: 'blob' = 'blob'
-    constructor(readonly data: Buffer) {
+    constructor(readonly content: Buffer) {
         super()
     }
 }
 
 export class FileBlob extends Blob {
-    constructor(readonly filePath: string, readonly data: Buffer, readonly stat: fs.Stats) {
-        super(data)
+    constructor(readonly filePath: string, readonly content: Buffer, readonly stat: fs.Stats) {
+        super(content)
     }
 }

@@ -90,7 +90,7 @@ export class Tree extends Storable {
         )
     }
 
-    get data(): Buffer {
+    get content(): Buffer {
         return Buffer.concat(
             pipe(this.items, M.toReadonlyArray(Ord.ordString)).map(([path, item]) =>
                 new Packer(Tree.ENTRY_FORMAT).pack([`${item.mode} ${path}`, item.oid]),

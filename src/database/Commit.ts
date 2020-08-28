@@ -12,7 +12,8 @@ export class Commit extends Storable {
     }
 
     type: 'commit' = 'commit'
-    get data(): Buffer {
+
+    get content(): Buffer {
         let lines: string[] = []
         lines.push(`tree ${this.treeId}`)
         if (this.parentId) {
