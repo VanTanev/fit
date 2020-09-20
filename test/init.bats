@@ -19,28 +19,27 @@ teardown() {
 }
 
 @test "init without directoy" {
-  DIR="init-without-dir"
-  mkdir -p "$DIR"
-  cd "$DIR"
-  run $EXE init
+    DIR="init-without-dir"
+    mkdir -p "$DIR"
+    cd "$DIR"
+    run $EXE init
 
-  assert_dir_exist ".git/objects"
-  assert_dir_exist ".git/refs"
+    assert_dir_exist ".git/objects"
+    assert_dir_exist ".git/refs"
 }
 
 @test "init with directoy" {
-  DIR="init-with-dir"
-  run $EXE init "$DIR"
-  assert_dir_exist "$DIR/.git/objects"
-  assert_dir_exist "$DIR/.git/refs"
+    DIR="init-with-dir"
+    run $EXE init "$DIR"
+    assert_dir_exist "$DIR/.git/objects"
+    assert_dir_exist "$DIR/.git/refs"
 }
 
 @test "init on root owned dirs should not work" {
-  skip
-  DIR="init-private"
-  mkdir "$DIR"
-  sudo chown root "$DIR"
-  run $EXE init "$DIR"
-  assert_failure
-  assert_output 'asdf'
+    skip "executing this requires sudo, so we don't run it by default"
+    DIR="init-private"
+    mkdir "$DIR"
+    sudo chown root "$DIR"
+    run $EXE init "$DIR"
+    assert_failure
 }

@@ -8,7 +8,7 @@ import { pipe } from 'fp-ts/lib/pipeable'
 import invariant from 'tiny-invariant'
 
 import { Storable } from './Storable'
-import * as fs from '../fsUtils'
+import * as fs from '../fs'
 
 export class Entry {
     constructor(readonly filePath: string, readonly oid: string, readonly stat: fs.Stats) {}
@@ -91,8 +91,9 @@ export class Tree extends Storable {
     }
 
     get content(): Buffer {
+        let items = pipe(this.items, M.toReadonlyArray(Ord.ordString))
         return Buffer.concat(
-            pipe(this.items, M.toReadonlyArray(Ord.ordString)).map(([path, item]) =>
+            items.map(([path, item]) =>
                 new Packer(Tree.ENTRY_FORMAT).pack([`${item.mode} ${path}`, item.oid]),
             ),
         )

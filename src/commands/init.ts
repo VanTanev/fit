@@ -5,7 +5,7 @@ import * as A from 'fp-ts/lib/Array'
 import * as C from 'fp-ts/lib/Console'
 import * as TE from 'fp-ts/lib/TaskEither'
 
-import * as fs from '../fsUtils'
+import * as fs from '../fs'
 
 export function init(path = process.cwd()): TE.TaskEither<Error, void> {
     let gitPath = PATH.join(path, '.git')
@@ -13,7 +13,7 @@ export function init(path = process.cwd()): TE.TaskEither<Error, void> {
 
     return pipe(
         A.array.traverse(TE.getTaskValidation(A.getMonoid<Error>()))(
-            paths.map((path) => fs.mkdir(path)),
+            paths.map((path) => fs.mkdirp(path)),
             TE.mapLeft(A.of),
         ),
         TE.fold(

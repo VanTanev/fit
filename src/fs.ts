@@ -7,43 +7,61 @@ import * as T from 'fp-ts/lib/Task'
 import * as TE from 'fp-ts/lib/TaskEither'
 import { pipe } from 'fp-ts/lib/pipeable'
 
+// utils
+
 export type TaskEitherNode<A = void> = TE.TaskEither<NodeJS.ErrnoException, A>
+const toErrorFS = (e: unknown) => e as NodeJS.ErrnoException
 
-export const open = (
-    filePath: FS.PathLike,
-    mode: FS.Mode,
-): TaskEitherNode<FS.promises.FileHandle> =>
-    TE.tryCatch(() => FS.promises.open(filePath, mode), toErrorFS)
+function taskify<F extends (...args: any[]) => any, R = PromiseType<ReturnType<F>>>(
+    f: F,
+): (...args: Parameters<F>) => TaskEitherNode<R> {
+    return function () {
+        let args = Array.prototype.slice.call(arguments)
+        return TE.tryCatch(() => f.apply(null, args), toErrorFS)
+    }
+}
 
-export const writeFile = (
-    file: FS.promises.FileHandle | FS.PathLike,
-    content: string | Buffer,
-): TaskEitherNode => TE.tryCatch(() => FS.promises.writeFile(file, content), toErrorFS)
+type PromiseType<T extends Promise<any>> = T extends Promise<infer U> ? U : never
+type NonUndefined<A> = A extends undefined ? never : A
+type FunctionKeys<T extends object> = {
+    [K in keyof T]-?: NonUndefined<T[K]> extends Function ? K : never
+}[keyof T]
 
-export const close = (file: FS.promises.FileHandle): TaskEitherNode =>
-    TE.tryCatch(() => file.close(), toErrorFS)
+function taskifyFileHandle<
+    R extends PromiseType<ReturnType<FS.promises.FileHandle[K]>>,
+    K extends FunctionKeys<FS.promises.FileHandle>
+>(
+    m: K,
+): (
+    h: FS.promises.FileHandle,
+    ...args: Parameters<FS.promises.FileHandle[K]>
+) => TaskEitherNode<R> {
+    return function () {
+        let args = Array.prototype.slice.call(arguments)
+        return TE.tryCatch(() => args[0][m].apply(args[0], args.slice(1)), toErrorFS)
+    }
+}
 
-export const mkdir = (dirPath: string, opts: FS.MakeDirectoryOptions = {}): TaskEitherNode =>
-    TE.tryCatch(
-        () => FS.promises.mkdir(dirPath, { recursive: true, ...opts }).then(() => {}),
-        toErrorFS,
-    )
+// definitions
 
-export const readdir = (dirPath: FS.PathLike): TaskEitherNode<string[]> =>
-    TE.tryCatch(() => FS.promises.readdir(dirPath), toErrorFS)
+export const open: (
+    path: FS.PathLike,
+    flags: string | number,
+    mode?: FS.Mode,
+) => TaskEitherNode<FS.promises.FileHandle> = taskify(FS.promises.open)
+export const close = taskifyFileHandle('close')
 
-export const readFile = (filePath: FS.PathLike): TaskEitherNode<Buffer> =>
-    TE.tryCatch(() => FS.promises.readFile(filePath), toErrorFS)
+export const writeFile = taskify(FS.promises.writeFile)
+const mkdir = taskify(FS.promises.mkdir)
+export const mkdirp = (path: FS.PathLike, options: FS.MakeDirectoryOptions = {}) =>
+    mkdir(path, { ...options, recursive: true })
+export const readdir = TE.taskify<FS.PathLike, NodeJS.ErrnoException, string[]>(FS.readdir)
+export const readFile = taskify(FS.promises.readFile)
 
 export type Stats = FS.BigIntStats & { userMode: '100644' | '100755' }
 export const stat = (filePath: FS.PathLike): TaskEitherNode<Stats> => {
-    let stat = TE.tryCatch(
-        () =>
-            ((FS.promises.stat as unknown) as (
-                path: FS.PathLike,
-                opts?: any,
-            ) => Promise<FS.BigIntStats>)(filePath, { bigint: true }),
-        toErrorFS,
+    let stat = TE.taskify<FS.PathLike, { bigint: true }, NodeJS.ErrnoException, FS.BigIntStats>(
+        FS.stat as any,
     )
     let userMode = pipe(
         TE.tryCatch(() => FS.promises.access(filePath, FS.constants.X_OK), toErrorFS),
@@ -52,7 +70,7 @@ export const stat = (filePath: FS.PathLike): TaskEitherNode<Stats> => {
     )
 
     return Do(TE.taskEither)
-        .bind('stat', stat)
+        .bindL('stat', () => stat(filePath, { bigint: true }))
         .bind('userMode', userMode)
         .return(({ stat, userMode }) => Object.assign(stat, { userMode }))
 }
@@ -101,7 +119,7 @@ export function openOrCreateFileForWriting(
             e.code === 'ENOENT'
                 ? pipe(
                       // try to create the directory for the file
-                      mkdir(PATH.dirname(filePath)),
+                      mkdirp(PATH.dirname(filePath)),
                       // and retry opening
                       TE.chain(() => open(filePath, 'wx+')),
                   )
@@ -109,5 +127,3 @@ export function openOrCreateFileForWriting(
         ),
     )
 }
-
-const toErrorFS = (e: unknown) => e as NodeJS.ErrnoException

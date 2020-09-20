@@ -3,7 +3,7 @@ import * as TE from 'fp-ts/lib/TaskEither'
 import { pipe } from 'fp-ts/lib/pipeable'
 
 import { Storable } from './database/Storable'
-import * as fs from './fsUtils'
+import * as fs from './fs'
 import { deflate } from './util'
 
 export class Database {

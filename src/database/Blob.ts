@@ -1,5 +1,5 @@
 import { Storable } from './Storable'
-import * as fs from '../fsUtils'
+import * as fs from '../fs'
 
 export class Blob extends Storable {
     type: 'blob' = 'blob'

@@ -5,7 +5,7 @@ import * as TE from 'fp-ts/lib/TaskEither'
 import * as A from 'fp-ts/lib/Array'
 import { Do } from 'fp-ts-contrib/lib/Do'
 
-import * as fs from './fsUtils'
+import * as fs from './fs'
 import { FileBlob } from './database/Blob'
 
 const traverseArr = A.array.traverse(TE.taskEither)

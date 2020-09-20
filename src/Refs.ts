@@ -3,7 +3,7 @@ import * as TE from 'fp-ts/lib/TaskEither'
 import * as T from 'fp-ts/lib/Task'
 import { pipe } from 'fp-ts/lib/pipeable'
 
-import * as fs from './fsUtils'
+import * as fs from './fs'
 import { Lockfile } from './Lockfile'
 
 export class Refs {
